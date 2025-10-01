@@ -6,7 +6,6 @@ vendor/
 node_modules/
 
 # Archivos generados
-pedidos/*.pdf
 cache/*.cache
 
 # Logs
@@ -36,3 +35,7 @@ composer.phar
 # Archivos de backup
 *.bak
 *.backup
+
+# Excluir PDFs generados dinámicamente
+pedidos/*.pdf
+!pedidos/.gitkeep
