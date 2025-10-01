@@ -28,24 +28,19 @@ $response = [
 ];
 
 /**
- * Envía un correo con el PDF adjunto.
+ * Envía un correo con el PDF adjunto desde memoria.
  */
-function enviarCorreoPDF(string $pdfPath, int $pedidoId, string $nombreUsuario): bool {
-    if (!file_exists($pdfPath)) {
-        error_log("PDF no encontrado: " . $pdfPath);
-        return false;
-    }
-
+function enviarCorreoPDFMemoria(string $pdfContent, int $pedidoId, string $nombreUsuario): bool {
     $mail = new PHPMailer(true);
 
     try {
         $mail->isSMTP();
-        $mail->SMTPDebug = 2; // Nivel de depuración aumentado para diagnosticar problemas
+        $mail->SMTPDebug = 2;
         $mail->Debugoutput = function($str, $level) { error_log("PHPMailer debug: $str"); };
         $mail->Host = SMTP_HOST;
         $mail->SMTPAuth = true;
         $mail->Username = SMTP_USER;
-        $mail->Password = SMTP_PASS; // ⚠ En producción, usar variables de entorno
+        $mail->Password = SMTP_PASS;
         $mail->SMTPOptions = array(
             'ssl' => array(
                 'verify_peer' => false,
@@ -54,10 +49,9 @@ function enviarCorreoPDF(string $pdfPath, int $pedidoId, string $nombreUsuario):
             )
         );
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = SMTP_PORT; // Puerto para SMTP con STARTTLS
+        $mail->Port = SMTP_PORT;
         $mail->CharSet = 'UTF-8';
 
-        // Registrar información de configuración para depuración
         error_log("Configuración de correo: Host={$mail->Host}, Usuario={$mail->Username}, Puerto={$mail->Port}");
 
         $mail->setFrom(SMTP_USER, 'Cheese Pizza Almacen');
@@ -71,7 +65,8 @@ function enviarCorreoPDF(string $pdfPath, int $pedidoId, string $nombreUsuario):
                     . "Fecha: " . date('d/m/Y H:i:s');
         $mail->AltBody = strip_tags($mail->Body);
 
-        $mail->addAttachment($pdfPath, "pedido_{$pedidoId}.pdf");
+        // Adjuntar PDF desde memoria
+        $mail->addStringAttachment($pdfContent, "pedido_{$pedidoId}.pdf", 'base64', 'application/pdf');
 
         return $mail->send();
     } catch (Exception $e) {
@@ -126,27 +121,7 @@ try {
     // TODO: insertar detalles de productos aquí...
     // foreach ($_POST['productos'] as $producto) { ... }
 
-    // Directorio para PDFs - usar tmp en Docker
-    $pdfDir = '/tmp/pedidos/';
-    if (!file_exists($pdfDir)) {
-        if (!mkdir($pdfDir, 0777, true)) {
-            throw new Exception('No se pudo crear el directorio para PDFs');
-        }
-    }
-    
-    // Verificar permisos de escritura
-    if (!is_writable($pdfDir)) {
-        error_log("Directorio no escribible: " . $pdfDir);
-        throw new Exception('El directorio de PDFs no tiene permisos de escritura');
-    }
-
-    $pdfFilename = "pedido_{$pedidoId}.pdf";
-    $pdfPath     = $pdfDir . $pdfFilename;
-    
-    // Log de debugging
-    error_log("[PROCESAR_PEDIDOS] Creando PDF: " . $pdfPath);
-    error_log("[PROCESAR_PEDIDOS] Directorio existe: " . (file_exists($pdfDir) ? 'SI' : 'NO'));
-    error_log("[PROCESAR_PEDIDOS] Directorio escribible: " . (is_writable($pdfDir) ? 'SI' : 'NO'));
+    error_log("[PROCESAR_PEDIDOS] Generando PDF para pedido: " . $pedidoId);
 
     // Generar PDF
     require_once __DIR__ . '/../libs/fpdf/fpdf.php';
@@ -262,27 +237,42 @@ try {
     $pdf->Cell(0, 4, 'CHEESE PIZZA ALMACEN - Av. Independecia #112,Jesus Maria, Ags. - Tel:', 0, 1, 'C');
     
     
-    // Guardar PDF
+    // Generar PDF solo en memoria
     try {
-        $pdf->Output($pdfPath, 'F');
-        error_log("[PROCESAR_PEDIDOS] PDF creado exitosamente: " . $pdfPath);
+        // Obtener PDF como string (sin crear archivo)
+        $pdfContent = $pdf->Output('', 'S');
+        error_log("[PROCESAR_PEDIDOS] PDF generado en memoria");
+        
+        // Almacenar PDF en base de datos como BYTEA
+        $stmtUpdatePdf = $pdo->prepare("UPDATE pdf SET pdf_g = :pdf_data WHERE id_pdf = 1");
+        $stmtUpdatePdf->bindParam(':pdf_data', $pdfContent, PDO::PARAM_LOB);
+        $stmtUpdatePdf->execute();
+        error_log("[PROCESAR_PEDIDOS] PDF almacenado en tabla pdf con id_pdf=1");
+        
+        // Enviar correo con PDF desde memoria
+        $emailSent = enviarCorreoPDFMemoria($pdfContent, $pedidoId, $nombreUsuario);
+        error_log("[PROCESAR_PEDIDOS] Correo " . ($emailSent ? 'enviado' : 'falló'));
+        
+        // Confirmar transacción antes de la descarga
+        $pdo->commit();
+        
+        // Limpiar buffer y configurar headers para descarga
+        if (ob_get_length()) ob_end_clean();
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="pedido_' . $pedidoId . '.pdf"');
+        header('Content-Length: ' . strlen($pdfContent));
+        echo $pdfContent;
+        exit;
+
     } catch (Exception $pdfError) {
-        error_log("[PROCESAR_PEDIDOS] Error al crear PDF: " . $pdfError->getMessage());
+        error_log("[PROCESAR_PEDIDOS] Error al generar PDF: " . $pdfError->getMessage());
         throw new Exception('Error al generar el PDF: ' . $pdfError->getMessage());
     }
 
-    // Enviar correo
-    $emailSent = enviarCorreoPDF($pdfPath, $pedidoId, $nombreUsuario);
-
-    $pdo->commit();
-
+    // Este código no se ejecutará porque exit() está arriba
     $response = [
-        'success'   => true,
-        'message'   => 'Pedido procesado correctamente' .
-                      ($emailSent ? ' y enviado por correo' : ' pero no se pudo enviar el correo'),
-        'redirect'  => "ver_pedido.php?id={$pedidoId}",
-        'pdf_url'   => 'pedidos/' . $pdfFilename,
-        'emailSent' => $emailSent
+        'success' => true,
+        'message' => 'PDF generado y descargado'
     ];
 
 } catch (PDOException $e) {
