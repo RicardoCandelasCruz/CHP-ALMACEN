@@ -227,69 +227,25 @@ try {
                     didOpen: () => { Swal.showLoading(); }
                 });
 
-                $.ajax({
-                    url: $(this).attr('action'),
-                    method: 'POST',
-                    data: datosFormulario,
-                    dataType: 'json'
-                })
-                .done(function(response) {
-                    console.log('=== RESPUESTA AJAX RECIBIDA ===');
-                    console.log('Respuesta completa:', response);
-                    console.log('Tipo de respuesta:', typeof response);
-                    console.log('Success:', response.success);
-                    console.log('Message:', response.message);
-                    
-                    if (response.success) {
-                        console.log('✅ PEDIDO EXITOSO');
-                        console.log('Mensaje:', response.message);
-                        if (response.redirect) {
-                            console.log('URL de redirección:', response.redirect);
-                        }
-                        
-                        Swal.fire({
-                            icon: 'success',
-                            title: '¡Éxito!',
-                            text: response.message,
-                            confirmButtonText: 'Ver pedido'
-                        }).then((result) => {
-                            if (result.isConfirmed && response.redirect) {
-                                console.log('🔄 Redirigiendo a:', response.redirect);
-                                window.location.href = response.redirect;
-                            }
-                        });
-                    } else {
-                        console.error('❌ ERROR EN PEDIDO');
-                        console.error('Mensaje de error:', response.message);
-                        console.log('Datos completos del error:', response);
-
-                        error_log("[GENERACION DE PDF ]  " . response );
-
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: response.message || 'Ocurrió un error al procesar el pedido'
-                        });
-                    }
-                })
-                .fail(function(jqXHR, textStatus, errorThrown) {
-                    console.error('=== ERROR EN PETICIÓN AJAX ===');
-                    console.error('Estado HTTP:', jqXHR.status);
-                    console.error('Estado texto:', textStatus);
-                    console.error('Error lanzado:', errorThrown);
-                    console.error('Respuesta cruda del servidor:');
-                    console.log(jqXHR.responseText);
-                    console.error('Headers de respuesta:', jqXHR.getAllResponseHeaders());
-
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error en la petición',
-                        html: `<b>Estado:</b> ${textStatus}<br>
-                               <b>Error:</b> ${errorThrown}<br>
-                               <b>Código HTTP:</b> ${jqXHR.status}<br><br>
-                               <pre style="text-align:left;white-space:pre-wrap;">${jqXHR.responseText}</pre>`
-                    });
+                // Abrir PDF en nueva ventana
+                const form = $(this)[0];
+                form.target = '_blank';
+                form.submit();
+                
+                // Cerrar loading
+                Swal.close();
+                
+                // Mostrar mensaje de éxito
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Pedido procesado!',
+                    text: 'El PDF se abrirá en una nueva pestaña',
+                    timer: 2000,
+                    showConfirmButton: false
                 });
+                
+                return; // Salir aquí, no usar AJAX
+                // Este código ya no se ejecuta porque usamos form.submit() arriba
             });
         });
     </script>
