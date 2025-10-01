@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/Auth.php';
+require_once __DIR__ . '/../includes/auth.php';
 session_start();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

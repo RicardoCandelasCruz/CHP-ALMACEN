@@ -6,7 +6,7 @@ if (php_sapi_name() === 'cli-server' && basename(__FILE__) == basename($_SERVER[
 
 // Usar rutas absolutas con __DIR__
 require_once __DIR__ . '/includes/config.php';
-require_once __DIR__ . '/includes/Auth.php';
+require_once __DIR__ . '/includes/auth.php';
 
 try {
     $pdo = new PDO(

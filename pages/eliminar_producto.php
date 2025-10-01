@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/Auth.php';
+require_once __DIR__ . '/../includes/auth.php';
 session_start();
 
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);

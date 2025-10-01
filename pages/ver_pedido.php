@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/Auth.php';
+require_once __DIR__ . '/../includes/auth.php';
 
 if (empty($_GET['id'])) {
     header("Location: lista_pedidos.php");
