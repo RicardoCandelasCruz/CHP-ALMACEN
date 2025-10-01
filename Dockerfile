@@ -8,6 +8,10 @@ RUN apt-get update && apt-get install -y libpq-dev \
 # Copiar archivos
 COPY . /app/
 
+# Instalar dependencias de Composer
+WORKDIR /app
+RUN composer install --no-dev --optimize-autoloader
+
 # Crear directorio pedidos y configurar permisos
 RUN mkdir -p /app/pedidos && \
     chown -R application:application /app/pedidos && \

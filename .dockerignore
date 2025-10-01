@@ -4,4 +4,3 @@ pedidos/
 cache/
 .git/
 node_modules/
-vendor/
