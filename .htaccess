@@ -1,8 +1,0 @@
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php [QSA,L]
-
-# Configuración PHP
-php_value extension pdo_pgsql
-php_value extension pgsql
