@@ -7,7 +7,7 @@ ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
 require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/Auth.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
@@ -126,7 +126,16 @@ try {
     // TODO: insertar detalles de productos aquí...
     // foreach ($_POST['productos'] as $producto) { ... }
 
-    error_log("[PROCESAR_PEDIDOS] Generando PDF para pedido: " . $pedidoId);
+    // Directorio para PDFs
+    $pdfDir = __DIR__ . '/../pedidos/';
+    if (!file_exists($pdfDir)) {
+        if (!mkdir($pdfDir, 0755, true)) {
+            throw new Exception('No se pudo crear el directorio para PDFs');
+        }
+    }
+
+    $pdfFilename = "pedido_{$pedidoId}.pdf";
+    $pdfPath     = $pdfDir . $pdfFilename;
 
     // Generar PDF
     require_once __DIR__ . '/../libs/fpdf/fpdf.php';
@@ -242,32 +251,21 @@ try {
     $pdf->Cell(0, 4, 'CHEESE PIZZA ALMACEN - Av. Independecia #112,Jesus Maria, Ags. - Tel:', 0, 1, 'C');
     
     
-    // Generar PDF en memoria y mostrar en nueva pestaña
-    try {
-        // Confirmar transacción antes de mostrar PDF
-        $pdo->commit();
-        
-        // Generar PDF en memoria (sin archivo temporal)
-        $pdfContent = $pdf->Output('', 'S');
-        error_log("[PROCESAR_PEDIDOS] PDF generado en memoria para pedido: " . $pedidoId);
-        
-        // Configurar headers para mostrar en nueva pestaña
-        if (ob_get_length()) ob_end_clean();
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: inline; filename="pedido_' . $pedidoId . '.pdf"');
-        header('Content-Length: ' . strlen($pdfContent));
-        echo $pdfContent;
-        exit;
+    // Guardar PDF
+    $pdf->Output($pdfPath, 'F');
 
-    } catch (Exception $pdfError) {
-        error_log("[PROCESAR_PEDIDOS] Error al generar PDF: " . $pdfError->getMessage());
-        throw new Exception('Error al generar el PDF: ' . $pdfError->getMessage());
-    }
+    // Enviar correo
+    $emailSent = enviarCorreoPDF($pdfPath, $pedidoId, $nombreUsuario);
 
-    // Este código no se ejecutará porque exit() está arriba
+    $pdo->commit();
+
     $response = [
-        'success' => true,
-        'message' => 'PDF generado y mostrado'
+        'success'   => true,
+        'message'   => 'Pedido procesado correctamente' .
+                      ($emailSent ? ' y enviado por correo' : ' pero no se pudo enviar el correo'),
+        'redirect'  => "ver_pedido.php?id={$pedidoId}",
+        'pdf_url'   => 'pedidos/' . $pdfFilename,
+        'emailSent' => $emailSent
     ];
 
 } catch (PDOException $e) {

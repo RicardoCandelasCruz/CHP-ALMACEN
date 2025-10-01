@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/Auth.php';
 
 // Inicializar variables
 $productos = [];
@@ -73,14 +73,7 @@ try {
     </style>
 </head>
 <body>
-    <?php 
-    // Log PHP - Carga de página
-    error_log("[FORMULARIO_PEDIDOS] Página cargada - " . date('Y-m-d H:i:s'));
-    if (!empty($productos)) {
-        error_log("[FORMULARIO_PEDIDOS] Productos cargados: " . count($productos));
-    }
-    include __DIR__ . '/../includes/header.php'; 
-    ?>
+    <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="container mt-4">
         <div class="card shadow">
@@ -90,7 +83,6 @@ try {
             
             <div class="card-body">
                 <?php if (!empty($error)): ?>
-                    <?php error_log("[FORMULARIO_PEDIDOS] Error mostrado: " . $error); ?>
                     <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
                 <?php endif; ?>
 
@@ -132,7 +124,6 @@ try {
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
-                                    <?php error_log("[FORMULARIO_PEDIDOS] No hay productos disponibles"); ?>
                                     <tr>
                                         <td colspan="3" class="text-center">No hay productos disponibles</td>
                                     </tr>
@@ -216,36 +207,51 @@ try {
                     return;
                 }
 
-                // Log de datos enviados
-                const datosFormulario = $(this).serialize();
-                console.log('Datos enviados:', datosFormulario);
-                console.log('URL destino:', $(this).attr('action'));
-
                 Swal.fire({
                     title: 'Procesando pedido...',
                     allowOutsideClick: false,
                     didOpen: () => { Swal.showLoading(); }
                 });
 
-                // Abrir PDF en nueva ventana
-                const form = $(this)[0];
-                form.target = '_blank';
-                form.submit();
-                
-                // Cerrar loading
-                Swal.close();
-                
-                // Mostrar mensaje de éxito
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Pedido procesado!',
-                    text: 'El PDF se abrirá en una nueva pestaña',
-                    timer: 2000,
-                    showConfirmButton: false
+                $.ajax({
+                    url: $(this).attr('action'),
+                    method: 'POST',
+                    data: $(this).serialize(),
+                    dataType: 'json'
+                })
+                .done(function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Éxito!',
+                            text: response.message,
+                            confirmButtonText: 'Ver pedido'
+                        }).then((result) => {
+                            if (result.isConfirmed && response.redirect) {
+                                window.location.href = response.redirect;
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message || 'Ocurrió un error al procesar el pedido'
+                        });
+                    }
+                })
+                .fail(function(jqXHR, textStatus, errorThrown) {
+                    console.error("Estado:", textStatus);
+                    console.error("Error:", errorThrown);
+                    console.log("Respuesta cruda:\n", jqXHR.responseText);
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error en la petición',
+                        html: `<b>Estado:</b> ${textStatus}<br>
+                               <b>Error:</b> ${errorThrown}<br><br>
+                               <pre style="text-align:left;white-space:pre-wrap;">${jqXHR.responseText}</pre>`
+                    });
                 });
-                
-                return; // Salir aquí, no usar AJAX
-                // Este código ya no se ejecuta porque usamos form.submit() arriba
             });
         });
     </script>
