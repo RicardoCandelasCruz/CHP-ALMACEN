@@ -5,54 +5,51 @@ require_once __DIR__ . '/vendor/autoload.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-echo "=== Diagnóstico de Conectividad SMTP ===\n";
-echo "Host: " . SMTP_HOST . "\n";
-echo "Puerto: " . SMTP_PORT . "\n";
-echo "Usuario: " . SMTP_USER . "\n";
-echo "SMTP Habilitado: " . (SMTP_ENABLED ? 'Sí' : 'No') . "\n\n";
+echo "=== DIAGNÓSTICO SMTP ===\n\n";
 
-if (!SMTP_ENABLED) {
-    echo "SMTP está deshabilitado en la configuración.\n";
-    exit(0);
-}
+$configuraciones = [
+    [
+        'host' => 'smtp.gmail.com',
+        'port' => 587,
+        'secure' => PHPMailer::ENCRYPTION_STARTTLS,
+        'name' => 'Gmail STARTTLS'
+    ],
+    [
+        'host' => 'smtp.gmail.com', 
+        'port' => 465,
+        'secure' => PHPMailer::ENCRYPTION_SMTPS,
+        'name' => 'Gmail SSL'
+    ]
+];
 
-// Test de conectividad básica
-echo "Probando conectividad a " . SMTP_HOST . ":" . SMTP_PORT . "...\n";
-$connection = @fsockopen(SMTP_HOST, SMTP_PORT, $errno, $errstr, 10);
-if ($connection) {
-    echo "✓ Conectividad básica: OK\n";
-    fclose($connection);
-} else {
-    echo "✗ Conectividad básica: FALLO ($errno: $errstr)\n";
-    echo "Esto indica un problema de red o firewall.\n";
-    exit(1);
-}
-
-// Test de PHPMailer
-echo "\nProbando configuración de PHPMailer...\n";
-$mail = new PHPMailer(true);
-
-try {
-    $mail->isSMTP();
-    $mail->SMTPDebug = 2;
-    $mail->Host = SMTP_HOST;
-    $mail->SMTPAuth = true;
-    $mail->Username = SMTP_USER;
-    $mail->Password = SMTP_PASS;
-    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $mail->Port = SMTP_PORT;
-    $mail->Timeout = 10;
+foreach ($configuraciones as $config) {
+    echo "Probando {$config['name']}...\n";
     
-    // Solo probar la conexión, no enviar correo
-    if ($mail->smtpConnect()) {
-        echo "✓ Autenticación SMTP: OK\n";
-        $mail->smtpClose();
-    } else {
-        echo "✗ Autenticación SMTP: FALLO\n";
+    try {
+        $mail = new PHPMailer(true);
+        $mail->isSMTP();
+        $mail->SMTPDebug = 2;
+        $mail->Host = $config['host'];
+        $mail->SMTPAuth = true;
+        $mail->Username = SMTP_USER;
+        $mail->Password = SMTP_PASS;
+        $mail->SMTPSecure = $config['secure'];
+        $mail->Port = $config['port'];
+        $mail->Timeout = 10;
+        
+        $mail->setFrom(SMTP_USER, 'Test');
+        $mail->addAddress(SMTP_FROM_EMAIL);
+        $mail->Subject = 'Test SMTP';
+        $mail->Body = 'Prueba de conectividad SMTP';
+        
+        if ($mail->send()) {
+            echo "✓ ÉXITO con {$config['name']}\n\n";
+            break;
+        }
+    } catch (Exception $e) {
+        echo "✗ ERROR con {$config['name']}: " . $e->getMessage() . "\n\n";
     }
-} catch (Exception $e) {
-    echo "✗ Error de PHPMailer: " . $e->getMessage() . "\n";
 }
 
-echo "\n=== Fin del diagnóstico ===\n";
+echo "=== FIN DIAGNÓSTICO ===\n";
 ?>

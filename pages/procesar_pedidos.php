@@ -28,7 +28,7 @@ $response = [
 ];
 
 /**
- * Envía un correo con el PDF adjunto.
+ * Envía un correo con el PDF adjunto con reintentos y servidores alternativos.
  */
 function enviarCorreoPDF(string $pdfPath, int $pedidoId, string $nombreUsuario): bool {
     if (!SMTP_ENABLED) {
@@ -41,46 +41,83 @@ function enviarCorreoPDF(string $pdfPath, int $pedidoId, string $nombreUsuario):
         return false;
     }
 
-    $mail = new PHPMailer(true);
+    // Configuraciones SMTP para probar
+    $configuraciones = [
+        [
+            'host' => SMTP_HOST,
+            'port' => SMTP_PORT,
+            'user' => SMTP_USER,
+            'pass' => SMTP_PASS,
+            'secure' => PHPMailer::ENCRYPTION_STARTTLS,
+            'name' => 'Gmail Principal'
+        ],
+        [
+            'host' => 'smtp.gmail.com',
+            'port' => 465,
+            'user' => SMTP_USER,
+            'pass' => SMTP_PASS,
+            'secure' => PHPMailer::ENCRYPTION_SMTPS,
+            'name' => 'Gmail SSL'
+        ]
+    ];
 
-    try {
-        $mail->isSMTP();
-        $mail->SMTPDebug = 0; // Desactivar debug para reducir logs
-        $mail->Host = SMTP_HOST;
-        $mail->SMTPAuth = true;
-        $mail->Username = SMTP_USER;
-        $mail->Password = SMTP_PASS;
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = SMTP_PORT;
-        $mail->CharSet = 'UTF-8';
-        $mail->Timeout = 10; // Timeout de 10 segundos
-        $mail->SMTPOptions = array(
-            'ssl' => array(
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-                'allow_self_signed' => true
-            )
-        );
+    foreach ($configuraciones as $config) {
+        $intentos = 0;
+        $maxIntentos = 2;
+        
+        while ($intentos < $maxIntentos) {
+            $intentos++;
+            
+            try {
+                $mail = new PHPMailer(true);
+                $mail->isSMTP();
+                $mail->SMTPDebug = 0;
+                $mail->Host = $config['host'];
+                $mail->SMTPAuth = true;
+                $mail->Username = $config['user'];
+                $mail->Password = $config['pass'];
+                $mail->SMTPSecure = $config['secure'];
+                $mail->Port = $config['port'];
+                $mail->CharSet = 'UTF-8';
+                $mail->Timeout = 20;
+                $mail->SMTPOptions = [
+                    'ssl' => [
+                        'verify_peer' => false,
+                        'verify_peer_name' => false,
+                        'allow_self_signed' => true
+                    ]
+                ];
 
-        $mail->setFrom(SMTP_USER, 'Cheese Pizza Almacen');
-        $mail->addAddress(SMTP_FROM_EMAIL);
+                $mail->setFrom($config['user'], 'Cheese Pizza Almacen');
+                $mail->addAddress(SMTP_FROM_EMAIL);
 
-        $mail->isHTML(true);
-        $mail->Subject = "Nuevo Pedido #{$pedidoId} - Cheese Pizza Almacen";
-        $mail->Body = "Se ha generado un nuevo pedido:<br><br>"
-                    . "Número de Pedido: {$pedidoId}<br>"
-                    . "Cliente: {$nombreUsuario}<br>"
-                    . "Fecha: " . date('d/m/Y H:i:s');
-        $mail->AltBody = strip_tags($mail->Body);
+                $mail->isHTML(true);
+                $mail->Subject = "Nuevo Pedido #{$pedidoId} - Cheese Pizza Almacen";
+                $mail->Body = "Se ha generado un nuevo pedido:<br><br>"
+                            . "Número de Pedido: {$pedidoId}<br>"
+                            . "Cliente: {$nombreUsuario}<br>"
+                            . "Fecha: " . date('d/m/Y H:i:s');
+                $mail->AltBody = strip_tags($mail->Body);
 
-        $mail->addAttachment($pdfPath, "pedido_{$pedidoId}.pdf");
+                $mail->addAttachment($pdfPath, "pedido_{$pedidoId}.pdf");
 
-        return $mail->send();
-    } catch (Exception $e) {
-        // Log del error pero no detener el proceso
-        error_log("Error al enviar correo (pedido #{$pedidoId}): " . $e->getMessage());
-        return false;
+                if ($mail->send()) {
+                    error_log("Correo enviado exitosamente para pedido #{$pedidoId} usando {$config['name']}");
+                    return true;
+                }
+            } catch (Exception $e) {
+                $errorMsg = "Error al enviar correo (pedido n.° {$pedidoId}): {$e->getMessage()}";
+                error_log($errorMsg);
+                
+                if ($intentos < $maxIntentos) {
+                    sleep(1);
+                }
+            }
+        }
     }
+    
+    error_log("Todos los intentos de envío fallaron para pedido #{$pedidoId}");
+    return false;
 }
 
 try {
@@ -260,10 +297,14 @@ try {
 
     // Intentar enviar correo después de confirmar la transacción
     $emailSent = false;
-    try {
-        $emailSent = enviarCorreoPDF($pdfPath, $pedidoId, $nombreUsuario);
-    } catch (Exception $e) {
-        error_log("Fallo al enviar correo para pedido #{$pedidoId}: " . $e->getMessage());
+    if (SMTP_ENABLED) {
+        try {
+            $emailSent = enviarCorreoPDF($pdfPath, $pedidoId, $nombreUsuario);
+        } catch (Exception $e) {
+            error_log("Fallo al enviar correo para pedido #{$pedidoId}: " . $e->getMessage());
+        }
+    } else {
+        error_log("SMTP deshabilitado - pedido #{$pedidoId} procesado sin envío de correo");
     }
 
     $response = [
