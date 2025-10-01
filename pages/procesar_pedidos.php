@@ -249,10 +249,10 @@ try {
         // error_log("[PROCESAR_PEDIDOS] Correo " . ($emailSent ? 'enviado' : 'falló'));
         
         
-        // Limpiar buffer y configurar headers para descarga
+        // Limpiar buffer y configurar headers para mostrar en nueva pestaña
         if (ob_get_length()) ob_end_clean();
         header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="pedido_test' . '.pdf"');
+        header('Content-Disposition: inline; filename="pedido_' . $pedidoId . '.pdf"');
         header('Content-Length: ' . strlen($pdfContent));
         echo $pdfContent;
         exit;
