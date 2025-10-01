@@ -1,33 +1,43 @@
 <?php
-require_once 'includes/config.php';
-require_once 'includes/auth.php';
+require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/Auth.php';
 
-$auth = new Auth($pdo);
-$error = '';
-
-// Si ya está logueado, redirigir
-if ($auth->verificarSesion()) {
-    header("Location: admin.php");
-    exit();
+// Conexión a PostgreSQL
+try {
+    $pdo = new PDO(
+        "pgsql:host=".DB_HOST.";port=".DB_PORT.";dbname=".DB_NAME, 
+        DB_USER, 
+        DB_PASS,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]
+    );
+    $auth = new Auth($pdo);
+} catch (PDOException $e) {
+    die("Error de conexión: " . $e->getMessage());
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
+// Procesar formulario
+$mensaje = '';
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
     $password = $_POST['password'] ?? '';
-    
-    error_log("Intento de login - Usuario: $username");
-    
-    if (empty($username) || empty($password)) {
-        $error = "Por favor complete todos los campos";
-    } else {
+
+    try {
         if ($auth->hacerLogin($username, $password)) {
-            error_log("Login exitoso - Usuario: $username");
-            header("Location: admin.php");
+            if ($auth->esAdmin()) {
+                header("Location: index.php");
+            } else {
+                header("Location: pages/formulario_pedidos.php");
+            }
             exit();
         } else {
-            $error = "Usuario o contraseña incorrectos";
-            error_log("Login fallido - Usuario: $username");
+            $mensaje = "Usuario o contraseña incorrectos";
         }
+    } catch (Exception $e) {
+        $mensaje = "Error en el sistema. Por favor intente más tarde.";
+        error_log("Login error: " . $e->getMessage());
     }
 }
 ?>
@@ -37,71 +47,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Estilos mejorados */
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; }
+        .login-box { 
+            max-width: 400px; margin: 5% auto; padding: 2rem;
+            background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-control { 
+            width: 100%; padding: 0.75rem; border: 1px solid #ddd;
+            border-radius: 4px; font-size: 1rem; 
+        }
+        .btn { 
+            background: #4361ee; color: white; border: none;
+            padding: 0.75rem; width: 100%; border-radius: 4px;
+            cursor: pointer; font-size: 1rem;
+        }
+        .alert { 
+            padding: 0.75rem; margin-bottom: 1rem; 
+            border-radius: 4px; text-align: center;
+        }
+        .alert-error { background: #fee; color: #d32f2f; }
+    </style>
 </head>
-<body class="bg-light">
-    <div class="container">
-        <div class="row justify-content-center mt-5">
-            <div class="col-md-6 col-lg-4">
-                <div class="card shadow">
-                    <div class="card-body">
-                        <h2 class="text-center mb-4">Iniciar Sesión</h2>
-                        
-                        <?php if ($error): ?>
-                            <div class="alert alert-danger">
-                                <?php echo htmlspecialchars($error); ?>
-                            </div>
-                        <?php endif; ?>
+<body>
+    <div class="login-box">
+        <h2>Iniciar Sesión</h2>
+        
+        <?php if (!empty($mensaje)): ?>
+            <div class="alert alert-error"><?= htmlspecialchars($mensaje) ?></div>
+        <?php endif; ?>
 
-                        <form method="POST" action="" id="loginForm">
-                            <div class="mb-3">
-                                <label for="username" class="form-label">Usuario:</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="username" 
-                                       name="username" 
-                                       value="<?php echo htmlspecialchars($username ?? ''); ?>"
-                                       required>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Contraseña:</label>
-                                <input type="password" 
-                                       class="form-control" 
-                                       id="password" 
-                                       name="password" 
-                                       required>
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary w-100">
-                                Iniciar Sesión
-                            </button>
-                        </form>
-                    </div>
-                </div>
+        <form method="post">
+            <div class="form-group">
+                <label for="username">Usuario</label>
+                <input type="text" id="username" name="username" class="form-control" required autofocus>
             </div>
-        </div>
+            
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" name="password" class="form-control" required>
+            </div>
+            
+            <button type="submit" class="btn">Ingresar</button>
+        </form>
     </div>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('loginForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const togglePassword = document.getElementById('togglePassword');
-        const passwordInput = document.getElementById('password');
-
-        // Mostrar/ocultar contraseña
-        togglePassword.addEventListener('click', function() {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            this.textContent = type === 'password' ? '👁️' : '🔒';
-        });
-
-        // Prevenir múltiples envíos
-        form.addEventListener('submit', function() {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"> Procesando...';
-        });
-    });
-    </script>
 </body>
 </html>

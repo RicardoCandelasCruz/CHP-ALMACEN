@@ -1,23 +1,27 @@
 <?php
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/Auth.php';
 session_start();
-include '../includes/conexion.php';
 
-$id = $_GET['id'];
+$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+if (!$id) {
+    $_SESSION['mensaje_error'] = "ID inválido.";
+    header("Location: agregar_producto.php");
+    exit();
+}
 
 try {
-    // Eliminar el producto por ID
-    $query = "DELETE FROM productos WHERE id = :id";
-    $stmt = $conn->prepare($query);
-    $stmt->bindParam(':id', $id);
+    $dsn = "pgsql:host=".DB_HOST.";port=".DB_PORT.";dbname=".DB_NAME;
+    $conn = new PDO($dsn, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
-    if ($stmt->execute()) {
-        header("Location: agregar_producto.php?success=1");
-        exit();
-    } else {
-        header("Location: agregar_producto.php?error=1");
-        exit();
-    }
+    $stmt = $conn->prepare("DELETE FROM productos WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+
+    $_SESSION['mensaje_exito'] = "Producto eliminado correctamente.";
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+    $_SESSION['mensaje_error'] = "Error al eliminar: " . $e->getMessage();
 }
-?>
+
+header("Location: agregar_producto.php");
+exit();

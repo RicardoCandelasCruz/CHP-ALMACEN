@@ -1,11 +1,6 @@
 <?php
-session_start();
-if (!isset($_SESSION['usuario_id'])) {
-    header("Location: ../index.php");
-    exit();
-}
 
-include '../includes/conexion.php';
+require_once __DIR__ . '/../includes/config.php';
 // Obtener todos los productos
 try {
     $query = "SELECT id, nombre, inventario, cantidad FROM productos";

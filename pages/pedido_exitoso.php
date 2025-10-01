@@ -5,7 +5,7 @@ if (!isset($_SESSION['usuario_id'])) {
     exit();
 }
 
-include '../includes/conexion.php';
+include '../includes/config.php';
 ?>
 
 <!DOCTYPE html>

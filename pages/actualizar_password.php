@@ -1,9 +1,9 @@
 <?php
-include '../includes/conexion.php';
+include '../includes/config.php';
 
 try {
     // Obtener todos los usuarios con contraseñas en texto plano
-    $query = "SELECT id, email, password FROM usuarios";
+    $query = "SELECT id, nombre, password FROM usuarios";
     $stmt = $conn->query($query);
 
     while ($usuario = $stmt->fetch(PDO::FETCH_ASSOC)) {

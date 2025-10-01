@@ -1,0 +1,38 @@
+# Archivos de configuración sensibles
+includes/config.php
+
+# Dependencias
+vendor/
+node_modules/
+
+# Archivos generados
+pedidos/*.pdf
+cache/*.cache
+
+# Logs
+*.log
+logs/
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+*.swo
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-*
+
+# Composer
+composer.phar
+
+# Variables de entorno
+.env
+.env.local
+.env.production
+
+# Archivos de backup
+*.bak
+*.backup
