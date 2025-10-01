@@ -37,5 +37,4 @@ composer.phar
 *.backup
 
 # Excluir PDFs generados dinámicamente
-pedidos/*.pdf
-!pedidos/.gitkeep
+.pdfs

@@ -73,7 +73,14 @@ try {
     </style>
 </head>
 <body>
-    <?php include __DIR__ . '/../includes/header.php'; ?>
+    <?php 
+    // Log PHP - Carga de página
+    error_log("[FORMULARIO_PEDIDOS] Página cargada - " . date('Y-m-d H:i:s'));
+    if (!empty($productos)) {
+        error_log("[FORMULARIO_PEDIDOS] Productos cargados: " . count($productos));
+    }
+    include __DIR__ . '/../includes/header.php'; 
+    ?>
 
     <div class="container mt-4">
         <div class="card shadow">
@@ -83,6 +90,7 @@ try {
             
             <div class="card-body">
                 <?php if (!empty($error)): ?>
+                    <?php error_log("[FORMULARIO_PEDIDOS] Error mostrado: " . $error); ?>
                     <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
                 <?php endif; ?>
 
@@ -124,6 +132,7 @@ try {
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
+                                    <?php error_log("[FORMULARIO_PEDIDOS] No hay productos disponibles"); ?>
                                     <tr>
                                         <td colspan="3" class="text-center">No hay productos disponibles</td>
                                     </tr>
@@ -207,6 +216,11 @@ try {
                     return;
                 }
 
+                // Log de datos enviados
+                const datosFormulario = $(this).serialize();
+                console.log('Datos enviados:', datosFormulario);
+                console.log('URL destino:', $(this).attr('action'));
+
                 Swal.fire({
                     title: 'Procesando pedido...',
                     allowOutsideClick: false,
@@ -216,11 +230,23 @@ try {
                 $.ajax({
                     url: $(this).attr('action'),
                     method: 'POST',
-                    data: $(this).serialize(),
+                    data: datosFormulario,
                     dataType: 'json'
                 })
                 .done(function(response) {
+                    console.log('=== RESPUESTA AJAX RECIBIDA ===');
+                    console.log('Respuesta completa:', response);
+                    console.log('Tipo de respuesta:', typeof response);
+                    console.log('Success:', response.success);
+                    console.log('Message:', response.message);
+                    
                     if (response.success) {
+                        console.log('✅ PEDIDO EXITOSO');
+                        console.log('Mensaje:', response.message);
+                        if (response.redirect) {
+                            console.log('URL de redirección:', response.redirect);
+                        }
+                        
                         Swal.fire({
                             icon: 'success',
                             title: '¡Éxito!',
@@ -228,10 +254,17 @@ try {
                             confirmButtonText: 'Ver pedido'
                         }).then((result) => {
                             if (result.isConfirmed && response.redirect) {
+                                console.log('🔄 Redirigiendo a:', response.redirect);
                                 window.location.href = response.redirect;
                             }
                         });
                     } else {
+                        console.error('❌ ERROR EN PEDIDO');
+                        console.error('Mensaje de error:', response.message);
+                        console.log('Datos completos del error:', response);
+
+                        error_log("[GENERACION DE PDF ]  " . response );
+
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
@@ -240,15 +273,20 @@ try {
                     }
                 })
                 .fail(function(jqXHR, textStatus, errorThrown) {
-                    console.error("Estado:", textStatus);
-                    console.error("Error:", errorThrown);
-                    console.log("Respuesta cruda:\n", jqXHR.responseText);
+                    console.error('=== ERROR EN PETICIÓN AJAX ===');
+                    console.error('Estado HTTP:', jqXHR.status);
+                    console.error('Estado texto:', textStatus);
+                    console.error('Error lanzado:', errorThrown);
+                    console.error('Respuesta cruda del servidor:');
+                    console.log(jqXHR.responseText);
+                    console.error('Headers de respuesta:', jqXHR.getAllResponseHeaders());
 
                     Swal.fire({
                         icon: 'error',
                         title: 'Error en la petición',
                         html: `<b>Estado:</b> ${textStatus}<br>
-                               <b>Error:</b> ${errorThrown}<br><br>
+                               <b>Error:</b> ${errorThrown}<br>
+                               <b>Código HTTP:</b> ${jqXHR.status}<br><br>
                                <pre style="text-align:left;white-space:pre-wrap;">${jqXHR.responseText}</pre>`
                     });
                 });
