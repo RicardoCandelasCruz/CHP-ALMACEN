@@ -8,6 +8,11 @@ RUN apt-get update && apt-get install -y libpq-dev \
 # Copiar archivos
 COPY . /app/
 
+# Crear directorio pedidos y configurar permisos
+RUN mkdir -p /app/pedidos && \
+    chown -R application:application /app/pedidos && \
+    chmod -R 777 /app/pedidos
+
 # Configurar Nginx para puerto 8080
 COPY nginx-8080.conf /opt/docker/etc/nginx/vhost.conf
 

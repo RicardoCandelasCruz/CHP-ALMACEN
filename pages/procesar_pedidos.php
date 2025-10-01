@@ -126,13 +126,12 @@ try {
     // TODO: insertar detalles de productos aquí...
     // foreach ($_POST['productos'] as $producto) { ... }
 
-    // Directorio para PDFs
-    $pdfDir = __DIR__ . '/../pedidos/';
+    // Directorio para PDFs - usar tmp en Docker
+    $pdfDir = '/tmp/pedidos/';
     if (!file_exists($pdfDir)) {
         if (!mkdir($pdfDir, 0777, true)) {
             throw new Exception('No se pudo crear el directorio para PDFs');
         }
-        chmod($pdfDir, 0777); // Asegurar permisos
     }
     
     // Verificar permisos de escritura
