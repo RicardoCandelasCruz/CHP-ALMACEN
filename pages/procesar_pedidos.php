@@ -243,23 +243,16 @@ try {
         $pdfContent = $pdf->Output('', 'S');
         error_log("[PROCESAR_PEDIDOS] PDF generado en memoria");
         
-        // Almacenar PDF en base de datos como BYTEA
-        $stmtUpdatePdf = $pdo->prepare("UPDATE pdf SET pdf_g = :pdf_data WHERE id_pdf = 1");
-        $stmtUpdatePdf->bindParam(':pdf_data', $pdfContent, PDO::PARAM_LOB);
-        $stmtUpdatePdf->execute();
-        error_log("[PROCESAR_PEDIDOS] PDF almacenado en tabla pdf con id_pdf=1");
         
-        // Enviar correo con PDF desde memoria
-        $emailSent = enviarCorreoPDFMemoria($pdfContent, $pedidoId, $nombreUsuario);
-        error_log("[PROCESAR_PEDIDOS] Correo " . ($emailSent ? 'enviado' : 'falló'));
+        // // Enviar correo con PDF desde memoria
+        // $emailSent = enviarCorreoPDFMemoria($pdfContent, $pedidoId, $nombreUsuario);
+        // error_log("[PROCESAR_PEDIDOS] Correo " . ($emailSent ? 'enviado' : 'falló'));
         
-        // Confirmar transacción antes de la descarga
-        $pdo->commit();
         
         // Limpiar buffer y configurar headers para descarga
         if (ob_get_length()) ob_end_clean();
         header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="pedido_' . $pedidoId . '.pdf"');
+        header('Content-Disposition: attachment; filename="pedido_test' . '.pdf"');
         header('Content-Length: ' . strlen($pdfContent));
         echo $pdfContent;
         exit;
