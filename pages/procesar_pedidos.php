@@ -31,6 +31,11 @@ $response = [
  * Envía un correo con el PDF adjunto.
  */
 function enviarCorreoPDF(string $pdfPath, int $pedidoId, string $nombreUsuario): bool {
+    if (!SMTP_ENABLED) {
+        error_log("SMTP deshabilitado - no se envía correo para pedido #{$pedidoId}");
+        return false;
+    }
+    
     if (!file_exists($pdfPath)) {
         error_log("PDF no encontrado: " . $pdfPath);
         return false;
@@ -40,12 +45,15 @@ function enviarCorreoPDF(string $pdfPath, int $pedidoId, string $nombreUsuario):
 
     try {
         $mail->isSMTP();
-        $mail->SMTPDebug = 2; // Nivel de depuración aumentado para diagnosticar problemas
-        $mail->Debugoutput = function($str, $level) { error_log("PHPMailer debug: $str"); };
+        $mail->SMTPDebug = 0; // Desactivar debug para reducir logs
         $mail->Host = SMTP_HOST;
         $mail->SMTPAuth = true;
         $mail->Username = SMTP_USER;
-        $mail->Password = SMTP_PASS; // ⚠ En producción, usar variables de entorno
+        $mail->Password = SMTP_PASS;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = SMTP_PORT;
+        $mail->CharSet = 'UTF-8';
+        $mail->Timeout = 10; // Timeout de 10 segundos
         $mail->SMTPOptions = array(
             'ssl' => array(
                 'verify_peer' => false,
@@ -53,12 +61,6 @@ function enviarCorreoPDF(string $pdfPath, int $pedidoId, string $nombreUsuario):
                 'allow_self_signed' => true
             )
         );
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = SMTP_PORT; // Puerto para SMTP con STARTTLS
-        $mail->CharSet = 'UTF-8';
-
-        // Registrar información de configuración para depuración
-        error_log("Configuración de correo: Host={$mail->Host}, Usuario={$mail->Username}, Puerto={$mail->Port}");
 
         $mail->setFrom(SMTP_USER, 'Cheese Pizza Almacen');
         $mail->addAddress(SMTP_FROM_EMAIL);
@@ -75,8 +77,8 @@ function enviarCorreoPDF(string $pdfPath, int $pedidoId, string $nombreUsuario):
 
         return $mail->send();
     } catch (Exception $e) {
-        error_log("Error al enviar correo: " . $e->getMessage());
-        error_log("Detalles del error de PHPMailer: " . $mail->ErrorInfo);
+        // Log del error pero no detener el proceso
+        error_log("Error al enviar correo (pedido #{$pedidoId}): " . $e->getMessage());
         return false;
     }
 }
@@ -254,15 +256,20 @@ try {
     // Guardar PDF
     $pdf->Output($pdfPath, 'F');
 
-    // Enviar correo
-    $emailSent = enviarCorreoPDF($pdfPath, $pedidoId, $nombreUsuario);
-
     $pdo->commit();
+
+    // Intentar enviar correo después de confirmar la transacción
+    $emailSent = false;
+    try {
+        $emailSent = enviarCorreoPDF($pdfPath, $pedidoId, $nombreUsuario);
+    } catch (Exception $e) {
+        error_log("Fallo al enviar correo para pedido #{$pedidoId}: " . $e->getMessage());
+    }
 
     $response = [
         'success'   => true,
-        'message'   => 'Pedido procesado correctamente' .
-                      ($emailSent ? ' y enviado por correo' : ' pero no se pudo enviar el correo'),
+        'message'   => 'Pedido procesado correctamente' . 
+                      ($emailSent ? ' y enviado por correo' : ' (correo pendiente por problemas de conectividad)'),
         'redirect'  => "ver_pedido.php?id={$pedidoId}",
         'pdf_url'   => 'pedidos/' . $pdfFilename,
         'emailSent' => $emailSent
