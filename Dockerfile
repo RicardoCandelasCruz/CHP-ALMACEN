@@ -1,24 +1,18 @@
-FROM php:8.1-apache
+FROM webdevops/php-nginx:8.2
 
-# Instalar extensiones de PostgreSQL
-RUN apt-get update && apt-get install -y \
-    libpq-dev \
+# Instalar PostgreSQL
+RUN apt-get update && apt-get install -y libpq-dev \
     && docker-php-ext-install pdo pdo_pgsql \
     && rm -rf /var/lib/apt/lists/*
 
-# Configurar Apache
-RUN echo "ServerName localhost" >> /etc/apache2/conf-available/servername.conf \
-    && a2enconf servername \
-    && a2enmod rewrite
-COPY 000-default.conf /etc/apache2/sites-available/000-default.conf
+# Copiar archivos
+COPY . /app/
 
-# Copiar archivos del proyecto
-COPY . /var/www/html/
+# Configurar Nginx para puerto 8080
+COPY nginx-8080.conf /opt/docker/etc/nginx/vhost.conf
 
-# Configurar permisos
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html \
-    && mkdir -p /var/www/html/cache /var/www/html/pedidos \
-    && chown -R www-data:www-data /var/www/html/cache /var/www/html/pedidos
+EXPOSE 8080
 
-EXPOSE 80
+# Configurar puerto para Railway
+ENV PORT=8080
+CMD ["/opt/docker/bin/entrypoint.sh", "supervisord"]
