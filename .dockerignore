@@ -1,0 +1,7 @@
+pedidos/
+*.pdf
+/tmp/
+cache/
+.git/
+node_modules/
+vendor/
