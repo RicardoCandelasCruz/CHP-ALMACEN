@@ -1,11 +1,11 @@
 <?php
 // Configuración de la base de datos PostgreSQL
-define('DB_HOST', 'aws-pedidosdb1.c7igma8qqvx8.us-east-2.rds.amazonaws.com');
-define('DB_PORT', '5432');
-define('DB_NAME', 'pedidosdb');
-define('DB_USER', 'postgres');
-define('DB_PASS', 'cheesepizza2001');
-define('DB_CHARSET', 'utf8');
+// Configuración de base de datos
+define('DB_HOST', getenv('DB_HOST') ?: 'maglev.proxy.rlwy.net');
+define('DB_PORT', getenv('DB_PORT') ?: '39710');
+define('DB_NAME', getenv('DB_NAME') ?: 'railway');
+define('DB_USER', getenv('DB_USER') ?: 'postgres');
+define('DB_PASS', getenv('DB_PASS') ?: 'mccvNsRssKCAbVKdlBAffRDYpvjslpfZ');
 
 // Configuración de la aplicación
 define('APP_DEBUG', true);

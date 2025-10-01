@@ -7,8 +7,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Configurar Apache
-RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
-RUN a2enmod rewrite
+RUN echo "ServerName localhost" >> /etc/apache2/conf-available/servername.conf \
+    && a2enconf servername \
+    && a2enmod rewrite
 COPY 000-default.conf /etc/apache2/sites-available/000-default.conf
 
 # Copiar archivos del proyecto
