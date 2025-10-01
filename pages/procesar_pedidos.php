@@ -129,13 +129,25 @@ try {
     // Directorio para PDFs
     $pdfDir = __DIR__ . '/../pedidos/';
     if (!file_exists($pdfDir)) {
-        if (!mkdir($pdfDir, 0755, true)) {
+        if (!mkdir($pdfDir, 0777, true)) {
             throw new Exception('No se pudo crear el directorio para PDFs');
         }
+        chmod($pdfDir, 0777); // Asegurar permisos
+    }
+    
+    // Verificar permisos de escritura
+    if (!is_writable($pdfDir)) {
+        error_log("Directorio no escribible: " . $pdfDir);
+        throw new Exception('El directorio de PDFs no tiene permisos de escritura');
     }
 
     $pdfFilename = "pedido_{$pedidoId}.pdf";
     $pdfPath     = $pdfDir . $pdfFilename;
+    
+    // Log de debugging
+    error_log("[PROCESAR_PEDIDOS] Creando PDF: " . $pdfPath);
+    error_log("[PROCESAR_PEDIDOS] Directorio existe: " . (file_exists($pdfDir) ? 'SI' : 'NO'));
+    error_log("[PROCESAR_PEDIDOS] Directorio escribible: " . (is_writable($pdfDir) ? 'SI' : 'NO'));
 
     // Generar PDF
     require_once __DIR__ . '/../libs/fpdf/fpdf.php';
@@ -252,7 +264,13 @@ try {
     
     
     // Guardar PDF
-    $pdf->Output($pdfPath, 'F');
+    try {
+        $pdf->Output($pdfPath, 'F');
+        error_log("[PROCESAR_PEDIDOS] PDF creado exitosamente: " . $pdfPath);
+    } catch (Exception $pdfError) {
+        error_log("[PROCESAR_PEDIDOS] Error al crear PDF: " . $pdfError->getMessage());
+        throw new Exception('Error al generar el PDF: ' . $pdfError->getMessage());
+    }
 
     // Enviar correo
     $emailSent = enviarCorreoPDF($pdfPath, $pedidoId, $nombreUsuario);
