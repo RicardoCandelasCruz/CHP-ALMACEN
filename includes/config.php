@@ -18,8 +18,7 @@ define('SMTP_PASS', getenv('SMTP_PASS') ?: 'opkj posq xeht qqvw');
 define('SMTP_PORT', getenv('SMTP_PORT') ?: 587);
 define('SMTP_FROM_EMAIL', getenv('SMTP_FROM_EMAIL') ?: 'cheesepizzarecepcion@gmail.com');
 define('ADMIN_EMAIL', getenv('ADMIN_EMAIL') ?: 'sistemacheesepizza@gmail.com');
-define('SMTP_ENABLED', getenv('SMTP_ENABLED') !== 'false');
-define('SMTP_RETRY_ATTEMPTS', 2);
-define('SMTP_RETRY_DELAY', 1);
+define('SMTP_ENABLED', getenv('SMTP_ENABLED') === 'true');
+
 
 ?>
