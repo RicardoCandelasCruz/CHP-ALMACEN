@@ -10,9 +10,12 @@ RUN apt-get update && apt-get install -y \
     openssl \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar extensiones PHP
+# Instalar extensiones PHP necesarias para PHPMailer y la aplicación
 RUN docker-php-ext-install pdo pdo_pgsql zip
-# OpenSSL ya está habilitado por defecto en PHP 8.2, no es necesario configurarlo manualmente
+RUN docker-php-ext-install -j$(nproc) iconv
+# Habilitar extensiones para correo
+RUN docker-php-ext-configure intl && docker-php-ext-install intl
+RUN docker-php-ext-install mbstring
 
 # Instalar Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
