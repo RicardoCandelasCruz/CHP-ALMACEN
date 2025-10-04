@@ -31,9 +31,10 @@ $response = [
  * Envía un correo con el PDF desde memoria.
  */
 function enviarCorreoPDFMemoria(string $pdfContent, int $pedidoId, string $nombreUsuario): bool {
-    if (!SMTP_ENABLED) {
-        return false;
-    }
+    // Forzar envío de correo independientemente de SMTP_ENABLED
+    // if (!SMTP_ENABLED) {
+    //     return false;
+    // }
 
     try {
         $mail = new PHPMailer(true);
@@ -84,11 +85,13 @@ function enviarCorreoPDFMemoria(string $pdfContent, int $pedidoId, string $nombr
  * Envía un correo con el PDF adjunto.
  */
 function enviarCorreoPDF(string $pdfPath, int $pedidoId, string $nombreUsuario): bool {
-    if (!SMTP_ENABLED) {
-        return false;
-    }
+    // Forzar envío de correo independientemente de SMTP_ENABLED
+    // if (!SMTP_ENABLED) {
+    //     return false;
+    // }
     
     if (!file_exists($pdfPath)) {
+        error_log("Error: El archivo PDF no existe en la ruta: " . $pdfPath);
         return false;
     }
 
