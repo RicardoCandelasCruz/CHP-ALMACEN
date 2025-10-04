@@ -7,10 +7,13 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     unzip \
     supervisor \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar extensiones PHP
-RUN docker-php-ext-install pdo pdo_pgsql
+RUN docker-php-ext-install pdo pdo_pgsql zip
+# Habilitar extensión openssl para SMTP
+RUN docker-php-ext-configure openssl
 
 # Instalar Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer

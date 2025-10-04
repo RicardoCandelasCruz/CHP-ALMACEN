@@ -8,6 +8,9 @@ require_once __DIR__ . '/../includes/auth.php';
 $productos = [];
 $error = '';
 
+// Verificar si se debe limpiar el formulario (viene de ver_pedido.php)
+$resetForm = isset($_GET['reset']) && $_GET['reset'] == '1';
+
 try {
     // Establecer conexión a PostgreSQL
     $pdo = new PDO(
@@ -154,6 +157,11 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function() {
+            // Verificar si se debe limpiar el formulario (viene de ver_pedido.php)
+            <?php if ($resetForm): ?>
+            // Limpiar todos los campos de cantidad
+            $('.quantity-input').val('0');
+            <?php endif; ?>
             // Filtrado de productos
             $('#buscador').on('input', function() {
                 const termino = $(this).val().toLowerCase();

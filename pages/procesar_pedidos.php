@@ -343,15 +343,20 @@ try {
     $pdo->commit();
 
     // Guardar PDF primero para asegurar que se crea correctamente
+    if (!is_dir(dirname($pdfPath))) {
+        mkdir(dirname($pdfPath), 0777, true);
+        error_log("Creando directorio para PDF: " . dirname($pdfPath));
+    }
+    
+    // Intentar guardar el PDF con máximos permisos
     file_put_contents($pdfPath, $pdfContent);
+    chmod($pdfPath, 0777);
     
     // Verificar que el archivo se haya creado correctamente
     if (!file_exists($pdfPath)) {
-        error_log("Error: No se pudo crear el archivo PDF en: " . $pdfPath);
+        error_log("Error crítico: No se pudo crear el archivo PDF en: " . $pdfPath);
     } else {
-        error_log("PDF creado correctamente en: " . $pdfPath);
-        // Establecer permisos adecuados
-        chmod($pdfPath, 0666);
+        error_log("PDF creado exitosamente en: " . $pdfPath);
     }
 
     // Intentar enviar correo con el PDF adjunto desde el archivo
