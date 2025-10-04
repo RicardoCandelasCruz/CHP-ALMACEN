@@ -1,0 +1,18 @@
+RewriteEngine On
+
+# Redirigir a login.php si no existe el archivo/directorio
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ login.php?$1 [QSA,L]
+
+# Configuración de seguridad
+<Files "*.php">
+    Order allow,deny
+    Allow from all
+</Files>
+
+# Permitir acceso a archivos estáticos
+<FilesMatch "\.(css|js|png|jpg|jpeg|gif|ico|pdf)$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>
