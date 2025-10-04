@@ -208,10 +208,14 @@ try {
     // Directorio para PDFs
     $pdfDir = __DIR__ . '/../pedidos/';
     if (!file_exists($pdfDir)) {
-        if (!mkdir($pdfDir, 0755, true)) {
+        if (!mkdir($pdfDir, 0777, true)) {
+            error_log("Error al crear directorio: " . $pdfDir);
             throw new Exception('No se pudo crear el directorio para PDFs');
         }
     }
+    
+    // Asegurar que el directorio tenga permisos de escritura
+    chmod($pdfDir, 0777);
 
     $pdfFilename = "pedido_{$pedidoId}.pdf";
     $pdfPath     = $pdfDir . $pdfFilename;
@@ -335,11 +339,20 @@ try {
     
     $pdo->commit();
 
+    // Guardar PDF primero para asegurar que se crea correctamente
+    file_put_contents($pdfPath, $pdfContent);
+    
+    // Verificar que el archivo se haya creado correctamente
+    if (!file_exists($pdfPath)) {
+        error_log("Error: No se pudo crear el archivo PDF en: " . $pdfPath);
+    } else {
+        error_log("PDF creado correctamente en: " . $pdfPath);
+        // Establecer permisos adecuados
+        chmod($pdfPath, 0666);
+    }
+
     // Intentar enviar correo con PDF en memoria
     $emailSent = SMTP_ENABLED ? enviarCorreoPDFMemoria($pdfContent, $pedidoId, $nombreUsuario) : false;
-    
-    // Guardar PDF después del correo
-    $pdf->Output($pdfPath, 'F');
 
     $response = [
         'success'   => true,

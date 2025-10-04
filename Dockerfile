@@ -25,7 +25,7 @@ RUN composer install --no-dev --optimize-autoloader
 # Crear directorio pedidos y configurar permisos
 RUN mkdir -p /app/pedidos && \
     chown -R www-data:www-data /app && \
-    chmod -R 755 /app/pedidos
+    chmod -R 777 /app/pedidos
 
 # Copiar configuración de Nginx
 COPY nginx.conf /etc/nginx/sites-available/default

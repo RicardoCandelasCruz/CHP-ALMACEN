@@ -1,4 +1,6 @@
 <?php
+// Asegurarse de que no haya salida antes de los headers
+ob_start();
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/auth.php';
 
@@ -21,7 +23,7 @@ try {
 // Procesar formulario
 $mensaje = '';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
+    $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
     $password = $_POST['password'] ?? '';
 
     try {
