@@ -8,13 +8,18 @@ RUN apt-get update && apt-get install -y \
     unzip \
     supervisor \
     openssl \
+    libicu-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar extensiones PHP necesarias para PHPMailer y la aplicación
 RUN docker-php-ext-install pdo pdo_pgsql zip
 RUN docker-php-ext-install -j$(nproc) iconv
-# Habilitar extensiones para correo
-RUN docker-php-ext-configure intl && docker-php-ext-install intl
+
+# Habilitar extensión intl para soporte internacional
+RUN docker-php-ext-configure intl
+RUN docker-php-ext-install intl
+
+# Instalar mbstring para manejo de cadenas multibyte
 RUN docker-php-ext-install mbstring
 
 # Instalar Composer
