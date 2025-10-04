@@ -351,8 +351,14 @@ try {
         chmod($pdfPath, 0666);
     }
 
-    // Intentar enviar correo con PDF en memoria
-    $emailSent = SMTP_ENABLED ? enviarCorreoPDFMemoria($pdfContent, $pedidoId, $nombreUsuario) : false;
+    // Intentar enviar correo con el PDF adjunto desde el archivo
+    $emailSent = SMTP_ENABLED ? enviarCorreoPDF($pdfPath, $pedidoId, $nombreUsuario) : false;
+    
+    // Si falla el envío con el archivo, intentar con el contenido en memoria
+    if (!$emailSent && SMTP_ENABLED) {
+        error_log("Intentando enviar correo con PDF en memoria como alternativa");
+        $emailSent = enviarCorreoPDFMemoria($pdfContent, $pedidoId, $nombreUsuario);
+    }
 
     $response = [
         'success'   => true,

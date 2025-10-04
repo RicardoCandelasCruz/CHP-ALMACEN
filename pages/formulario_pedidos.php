@@ -85,6 +85,11 @@ try {
                 <?php if (!empty($error)): ?>
                     <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
                 <?php endif; ?>
+                
+                <div class="alert alert-info mb-3">
+                    <strong>Usuario:</strong> <?= htmlspecialchars($_SESSION['nombre'] ?? $_SESSION['username'] ?? 'Usuario') ?> | 
+                    <strong>Fecha:</strong> <?= date('d/m/Y H:i:s') ?>
+                </div>
 
                 <div class="row mb-4">
                     <div class="col-md-6">
@@ -229,6 +234,11 @@ try {
                         }).then((result) => {
                             if (result.isConfirmed && response.redirect) {
                                 window.location.href = response.redirect;
+                            } else {
+                                // Limpiar el formulario
+                                $('#formPedido')[0].reset();
+                                $('.quantity-input').val('0');
+                                window.location.reload();
                             }
                         });
                     } else {
