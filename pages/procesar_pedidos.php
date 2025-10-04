@@ -28,6 +28,59 @@ $response = [
 ];
 
 /**
+ * Envía un correo con el PDF desde memoria.
+ */
+function enviarCorreoPDFMemoria(string $pdfContent, int $pedidoId, string $nombreUsuario): bool {
+    if (!SMTP_ENABLED) {
+        return false;
+    }
+
+    try {
+        $mail = new PHPMailer(true);
+        $mail->isSMTP();
+        $mail->SMTPDebug = 0;
+        $mail->Host = SMTP_HOST;
+        $mail->SMTPAuth = true;
+        $mail->Username = SMTP_USER;
+        $mail->Password = SMTP_PASS;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = SMTP_PORT;
+        $mail->CharSet = 'UTF-8';
+        $mail->Timeout = 10;
+        $mail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            ]
+        ];
+
+        $mail->setFrom(SMTP_USER, 'Cheese Pizza Almacen');
+        $mail->addAddress(SMTP_FROM_EMAIL);
+
+        $mail->isHTML(true);
+        $mail->Subject = "Nuevo Pedido #{$pedidoId} - Cheese Pizza Almacen";
+        $mail->Body = "Se ha generado un nuevo pedido:<br><br>"
+                    . "Número de Pedido: {$pedidoId}<br>"
+                    . "Cliente: {$nombreUsuario}<br>"
+                    . "Fecha: " . date('d/m/Y H:i:s');
+        $mail->AltBody = strip_tags($mail->Body);
+
+        // Adjuntar PDF desde memoria
+        $mail->addStringAttachment($pdfContent, "pedido_{$pedidoId}.pdf", 'base64', 'application/pdf');
+
+        if ($mail->send()) {
+            error_log("Correo enviado para pedido #{$pedidoId}");
+            return true;
+        }
+    } catch (Exception $e) {
+        error_log("Error correo pedido #{$pedidoId}: " . $e->getMessage());
+    }
+    
+    return false;
+}
+
+/**
  * Envía un correo con el PDF adjunto.
  */
 function enviarCorreoPDF(string $pdfPath, int $pedidoId, string $nombreUsuario): bool {
@@ -277,13 +330,16 @@ try {
     $pdf->Cell(0, 4, 'CHEESE PIZZA ALMACEN - Av. Independecia #112,Jesus Maria, Ags. - Tel:', 0, 1, 'C');
     
     
-    // Guardar PDF
-    $pdf->Output($pdfPath, 'F');
-
+    // Generar PDF en memoria para correo
+    $pdfContent = $pdf->Output('', 'S');
+    
     $pdo->commit();
 
-    // Intentar enviar correo (sin bloquear el proceso)
-    $emailSent = SMTP_ENABLED ? enviarCorreoPDF($pdfPath, $pedidoId, $nombreUsuario) : false;
+    // Intentar enviar correo con PDF en memoria
+    $emailSent = SMTP_ENABLED ? enviarCorreoPDFMemoria($pdfContent, $pedidoId, $nombreUsuario) : false;
+    
+    // Guardar PDF después del correo
+    $pdf->Output($pdfPath, 'F');
 
     $response = [
         'success'   => true,
