@@ -19,9 +19,6 @@ RUN mkdir -p /app/pedidos && \
     chown -R application:application /app/pedidos && \
     chmod -R 777 /app/pedidos
 
-# Crear volumen para persistir PDFs
-VOLUME ["/app/pedidos"]
-
 # Configurar Nginx para puerto 8080
 COPY nginx-8080.conf /opt/docker/etc/nginx/vhost.conf
 
