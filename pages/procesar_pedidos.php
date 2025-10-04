@@ -39,44 +39,72 @@ function enviarCorreoPDF(string $pdfPath, int $pedidoId, string $nombreUsuario):
         return false;
     }
 
-    try {
-        $mail = new PHPMailer(true);
-        $mail->isSMTP();
-        $mail->SMTPDebug = 0;
-        $mail->Host = SMTP_HOST;
-        $mail->SMTPAuth = true;
-        $mail->Username = SMTP_USER;
-        $mail->Password = SMTP_PASS;
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = SMTP_PORT;
-        $mail->CharSet = 'UTF-8';
-        $mail->Timeout = 5;
-        $mail->SMTPOptions = [
-            'ssl' => [
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-                'allow_self_signed' => true
-            ]
+    // Configuraciones a probar
+    $configs = [
+        [
+            'host' => SMTP_HOST,
+            'user' => SMTP_USER,
+            'pass' => SMTP_PASS,
+            'port' => SMTP_PORT,
+            'name' => 'Gmail'
+        ]
+    ];
+    
+    // Agregar configuración alternativa si está disponible
+    if (SMTP_ALT_HOST) {
+        $configs[] = [
+            'host' => SMTP_ALT_HOST,
+            'user' => SMTP_ALT_USER,
+            'pass' => SMTP_ALT_PASS,
+            'port' => SMTP_ALT_PORT,
+            'name' => 'Alternativo'
         ];
-
-        $mail->setFrom(SMTP_USER, 'Cheese Pizza Almacen');
-        $mail->addAddress(SMTP_FROM_EMAIL);
-
-        $mail->isHTML(true);
-        $mail->Subject = "Nuevo Pedido #{$pedidoId} - Cheese Pizza Almacen";
-        $mail->Body = "Se ha generado un nuevo pedido:<br><br>"
-                    . "Número de Pedido: {$pedidoId}<br>"
-                    . "Cliente: {$nombreUsuario}<br>"
-                    . "Fecha: " . date('d/m/Y H:i:s');
-        $mail->AltBody = strip_tags($mail->Body);
-
-        $mail->addAttachment($pdfPath, "pedido_{$pedidoId}.pdf");
-
-        return $mail->send();
-    } catch (Exception $e) {
-        error_log("Error correo pedido #{$pedidoId}: " . $e->getMessage());
-        return false;
     }
+
+    foreach ($configs as $config) {
+        try {
+            $mail = new PHPMailer(true);
+            $mail->isSMTP();
+            $mail->SMTPDebug = 0;
+            $mail->Host = $config['host'];
+            $mail->SMTPAuth = true;
+            $mail->Username = $config['user'];
+            $mail->Password = $config['pass'];
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = $config['port'];
+            $mail->CharSet = 'UTF-8';
+            $mail->Timeout = 10;
+            $mail->SMTPOptions = [
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                ]
+            ];
+
+            $mail->setFrom($config['user'], 'Cheese Pizza Almacen');
+            $mail->addAddress(SMTP_FROM_EMAIL);
+
+            $mail->isHTML(true);
+            $mail->Subject = "Nuevo Pedido #{$pedidoId} - Cheese Pizza Almacen";
+            $mail->Body = "Se ha generado un nuevo pedido:<br><br>"
+                        . "Número de Pedido: {$pedidoId}<br>"
+                        . "Cliente: {$nombreUsuario}<br>"
+                        . "Fecha: " . date('d/m/Y H:i:s');
+            $mail->AltBody = strip_tags($mail->Body);
+
+            $mail->addAttachment($pdfPath, "pedido_{$pedidoId}.pdf");
+
+            if ($mail->send()) {
+                error_log("Correo enviado con {$config['name']} para pedido #{$pedidoId}");
+                return true;
+            }
+        } catch (Exception $e) {
+            error_log("Fallo {$config['name']} pedido #{$pedidoId}: " . $e->getMessage());
+        }
+    }
+    
+    return false;
 }
 
 try {
