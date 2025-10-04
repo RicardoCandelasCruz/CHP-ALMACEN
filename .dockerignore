@@ -1,6 +1,28 @@
-pedidos/
-*.pdf
-/tmp/
-cache/
-.git/
-node_modules/
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+
+# Temporary files
+*.tmp
+*.temp
+
+# Documentation
+README.md
+
+# Development files
+.env.example
