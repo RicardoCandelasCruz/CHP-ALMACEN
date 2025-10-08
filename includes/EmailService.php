@@ -5,7 +5,7 @@ class EmailService {
      * Envía correo usando cURL directo con SMTP
      */
     public static function enviarConCurl(string $pdfContent, int $pedidoId, string $nombreUsuario): bool {
-        if (!SMTP_ENABLED) return false;
+        // Siempre intentar enviar correo
         
         $boundary = md5(time());
         $headers = [

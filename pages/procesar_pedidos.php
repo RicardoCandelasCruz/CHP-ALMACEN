@@ -32,10 +32,7 @@ $response = [
  * Envía un correo con el PDF desde memoria.
  */
 function enviarCorreoPDFMemoria(string $pdfContent, int $pedidoId, string $nombreUsuario): bool {
-    // Forzar envío de correo independientemente de SMTP_ENABLED
-    // if (!SMTP_ENABLED) {
-    //     return false;
-    // }
+    // Siempre intentar enviar correo
 
     try {
         $mail = new PHPMailer(true);
@@ -86,10 +83,7 @@ function enviarCorreoPDFMemoria(string $pdfContent, int $pedidoId, string $nombr
  * Envía un correo con el PDF adjunto.
  */
 function enviarCorreoPDF(string $pdfPath, int $pedidoId, string $nombreUsuario): bool {
-    // Forzar envío de correo independientemente de SMTP_ENABLED
-    // if (!SMTP_ENABLED) {
-    //     return false;
-    // }
+    // Siempre intentar enviar correo
     
     if (!file_exists($pdfPath)) {
         error_log("Error: El archivo PDF no existe en la ruta: " . $pdfPath);
@@ -360,8 +354,23 @@ try {
         error_log("PDF creado exitosamente en: " . $pdfPath);
     }
 
-    // Intentar enviar correo con el servicio profesional
-    $emailSent = EmailService::enviar($pdfContent, $pedidoId, $nombreUsuario);
+    // Intentar enviar correo con múltiples métodos
+    $emailSent = false;
+    
+    // Método 1: Usar EmailService
+    if (!$emailSent) {
+        $emailSent = EmailService::enviar($pdfContent, $pedidoId, $nombreUsuario);
+    }
+    
+    // Método 2: Usar PHPMailer directo con el PDF guardado
+    if (!$emailSent && file_exists($pdfPath)) {
+        $emailSent = enviarCorreoPDF($pdfPath, $pedidoId, $nombreUsuario);
+    }
+    
+    // Método 3: Usar PHPMailer con PDF en memoria
+    if (!$emailSent) {
+        $emailSent = enviarCorreoPDFMemoria($pdfContent, $pedidoId, $nombreUsuario);
+    }
 
     $response = [
         'success'   => true,
