@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     supervisor \
     openssl \
     libicu-dev \
+    libonig-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar extensiones PHP necesarias para PHPMailer y la aplicación
@@ -20,6 +21,7 @@ RUN docker-php-ext-configure intl
 RUN docker-php-ext-install intl
 
 # Instalar mbstring para manejo de cadenas multibyte
+RUN docker-php-ext-configure mbstring
 RUN docker-php-ext-install mbstring
 
 # Instalar Composer
