@@ -8,7 +8,8 @@ ini_set('log_errors', '1');
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../libs/autoload.php';
+require_once __DIR__ . '/../includes/EmailService.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -359,14 +360,8 @@ try {
         error_log("PDF creado exitosamente en: " . $pdfPath);
     }
 
-    // Intentar enviar correo con el PDF adjunto desde el archivo
-    $emailSent = SMTP_ENABLED ? enviarCorreoPDF($pdfPath, $pedidoId, $nombreUsuario) : false;
-    
-    // Si falla el envío con el archivo, intentar con el contenido en memoria
-    if (!$emailSent && SMTP_ENABLED) {
-        error_log("Intentando enviar correo con PDF en memoria como alternativa");
-        $emailSent = enviarCorreoPDFMemoria($pdfContent, $pedidoId, $nombreUsuario);
-    }
+    // Intentar enviar correo con el servicio profesional
+    $emailSent = EmailService::enviar($pdfContent, $pedidoId, $nombreUsuario);
 
     $response = [
         'success'   => true,
