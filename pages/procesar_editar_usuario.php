@@ -1,4 +1,9 @@
 <?php
+// Limpiar buffer de salida
+if (ob_get_length()) {
+    ob_end_clean();
+}
+
 // Iniciar sesión segura
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/auth.php';
@@ -55,8 +60,8 @@ try {
         throw new Exception("ID de usuario inválido");
     }
     
-    $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
-    $nombre = filter_input(INPUT_POST, 'nombre', FILTER_SANITIZE_STRING);
+    $username = trim(filter_input(INPUT_POST, 'username', FILTER_UNSAFE_RAW));
+    $nombre = trim(filter_input(INPUT_POST, 'nombre', FILTER_UNSAFE_RAW));
     $password = filter_input(INPUT_POST, 'password', FILTER_UNSAFE_RAW);
     $es_admin = isset($_POST['es_admin']) ? 1 : 0;
     
