@@ -62,23 +62,30 @@ class EmailService {
      * Envía correo usando SendGrid API (alternativa profesional)
      */
     public static function enviarConSendGrid(string $pdfContent, int $pedidoId, string $nombreUsuario): bool {
-        $apiKey = getenv('SENDGRID_API_KEY');
-        if (!$apiKey) return false;
+        if (!USE_SENDGRID || !SENDGRID_API_KEY) {
+            error_log("SendGrid no configurado o API key faltante");
+            return false;
+        }
         
         $data = [
             'personalizations' => [[
                 'to' => [['email' => SMTP_FROM_EMAIL]],
                 'subject' => "Nuevo Pedido #{$pedidoId} - Cheese Pizza Almacen"
             ]],
-            'from' => ['email' => SMTP_USER, 'name' => 'Cheese Pizza Almacen'],
+            'from' => ['email' => SMTP_FROM_EMAIL, 'name' => 'Cheese Pizza Almacen'],
             'content' => [[
                 'type' => 'text/html',
-                'value' => "Se ha generado un nuevo pedido:<br><br>Número de Pedido: {$pedidoId}<br>Cliente: {$nombreUsuario}<br>Fecha: " . date('d/m/Y H:i:s')
+                'value' => "<h3>Nuevo Pedido Generado</h3><br>"
+                         . "<strong>Número de Pedido:</strong> {$pedidoId}<br>"
+                         . "<strong>Cliente:</strong> {$nombreUsuario}<br>"
+                         . "<strong>Fecha:</strong> " . date('d/m/Y H:i:s') . "<br><br>"
+                         . "<p>El PDF del pedido se encuentra adjunto a este correo.</p>"
             ]],
             'attachments' => [[
                 'content' => base64_encode($pdfContent),
                 'type' => 'application/pdf',
-                'filename' => "pedido_{$pedidoId}.pdf"
+                'filename' => "pedido_{$pedidoId}.pdf",
+                'disposition' => 'attachment'
             ]]
         ];
         
@@ -88,23 +95,30 @@ class EmailService {
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => json_encode($data),
             CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $apiKey,
+                'Authorization: Bearer ' . SENDGRID_API_KEY,
                 'Content-Type: application/json'
             ],
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 10
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_SSL_VERIFYPEER => false
         ]);
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
         curl_close($ch);
         
+        if ($curlError) {
+            error_log("SendGrid cURL error: " . $curlError);
+            return false;
+        }
+        
         if ($httpCode === 202) {
-            error_log("Correo enviado con SendGrid para pedido #{$pedidoId}");
+            error_log("Correo enviado exitosamente con SendGrid para pedido #{$pedidoId}");
             return true;
         }
         
-        error_log("SendGrid error: " . $response);
+        error_log("SendGrid error (HTTP {$httpCode}): " . $response);
         return false;
     }
     
@@ -112,12 +126,13 @@ class EmailService {
      * Método principal que prueba múltiples servicios
      */
     public static function enviar(string $pdfContent, int $pedidoId, string $nombreUsuario): bool {
-        // Intentar con SendGrid primero (más confiable)
-        if (self::enviarConSendGrid($pdfContent, $pedidoId, $nombreUsuario)) {
+        // Prioridad 1: SendGrid API (más confiable en Railway)
+        if (USE_SENDGRID && self::enviarConSendGrid($pdfContent, $pedidoId, $nombreUsuario)) {
             return true;
         }
         
-        // Fallback a cURL SMTP
+        // Fallback: cURL SMTP (probablemente fallará en Railway)
+        error_log("SendGrid no disponible, intentando SMTP tradicional...");
         return self::enviarConCurl($pdfContent, $pedidoId, $nombreUsuario);
     }
 }

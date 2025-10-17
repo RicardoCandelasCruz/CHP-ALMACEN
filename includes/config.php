@@ -20,6 +20,10 @@ define('SMTP_FROM_EMAIL', getenv('SMTP_FROM_EMAIL') ?: 'cheesepizzarecepcion@gma
 define('ADMIN_EMAIL', getenv('ADMIN_EMAIL') ?: 'sistemacheesepizza@gmail.com');
 define('SMTP_ENABLED', getenv('SMTP_ENABLED') === 'true');
 
+// Configuración SendGrid API para Railway
+define('SENDGRID_API_KEY', getenv('SENDGRID_API_KEY') ?: '');
+define('USE_SENDGRID', !empty(getenv('SENDGRID_API_KEY')));
+
 // Configuración alternativa para Railway (SendGrid/Mailgun)
 define('SMTP_ALT_HOST', getenv('SMTP_ALT_HOST') ?: '');
 define('SMTP_ALT_USER', getenv('SMTP_ALT_USER') ?: '');
