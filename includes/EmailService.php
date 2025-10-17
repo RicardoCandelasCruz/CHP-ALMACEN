@@ -62,6 +62,9 @@ class EmailService {
      * Envía correo usando SendGrid API (alternativa profesional)
      */
     public static function enviarConSendGrid(string $pdfContent, int $pedidoId, string $nombreUsuario): bool {
+        error_log("Debug SendGrid - USE_SENDGRID: " . (USE_SENDGRID ? 'true' : 'false'));
+        error_log("Debug SendGrid - API Key presente: " . (SENDGRID_API_KEY ? 'SI' : 'NO'));
+        
         if (!USE_SENDGRID || !SENDGRID_API_KEY) {
             error_log("SendGrid no configurado o API key faltante");
             return false;
