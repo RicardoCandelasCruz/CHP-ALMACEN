@@ -333,7 +333,7 @@ if ($result && $result['total'] > 0) {
                                             <?= $usuario['es_admin'] ? 'Administrador' : 'Usuario' ?>
                                         </span>
                                     </td>
-                                    <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($usuario['fecha_creacion']))) ?></td>
+                                    <td><?= htmlspecialchars($usuario['fecha_creacion'] ? date('d/m/Y H:i', strtotime($usuario['fecha_creacion'])) : 'N/A') ?></td>
                                     <td class="actions-column">
                                         <div class="btn-group">
                                             <a href="editar_usuario.php?id=<?= $usuario['id'] ?>" class="btn btn-sm btn-warning">
